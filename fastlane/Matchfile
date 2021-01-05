@@ -1,0 +1,7 @@
+git_url("git@gitlab.com:bordo/tegsoft_touch_certificates")
+
+storage_mode("git")
+
+app_identifier(["com.tegsoft.touch", "com.tegsoft.touch"])
+
+force_for_new_devices(true)

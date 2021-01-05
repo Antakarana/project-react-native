@@ -1,0 +1,1 @@
+export { StatisticsTableItem } from './StatisticsTableItem';

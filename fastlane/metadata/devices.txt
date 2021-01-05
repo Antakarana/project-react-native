@@ -1,0 +1,4 @@
+Device ID	Device Name
+b969a07fc169fe18ea0eaf206718f268ebb74beb	Osman's iPhone 5s
+429491003ab13fcde22d012009b81b9091057509	Betul's iPhone 7 Plus
+223b05edefb91bf45e1d78d4975790486004ecb7	Abdullah's iPhone 6

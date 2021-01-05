@@ -1,0 +1,10 @@
+output_directory("./build")
+clean(true)
+
+scheme("tegsoft_touch")
+
+workspace("./ios/tegsoft_touch.xcworkspace")
+
+for_lane :beta do
+    scheme 'tegsoft_touch Staging'
+end

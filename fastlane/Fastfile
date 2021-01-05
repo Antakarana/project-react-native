@@ -1,0 +1,163 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+def get_current_marketing_version
+  xcode_project_path = '../ios/tegsoft_touch.xcodeproj'
+  scheme_name = 'tegsoft_touch Staging'
+  project = Xcodeproj::Project.open(xcode_project_path)
+  project.targets.each do |target|
+    if target.name == "tegsoft_touch"
+      target.build_configurations.each do |config|
+        return config.build_settings['MARKETING_VERSION']
+      end
+    end
+  end
+end
+
+def set_marketing_version(version)
+  xcode_project_path = '../ios/tegsoft_touch.xcodeproj'
+  scheme_name = 'tegsoft_touch Staging'
+  project = Xcodeproj::Project.open(xcode_project_path)
+  project.targets.each do |target|
+    if target.name == "tegsoft_touch"
+      target.build_configurations.each do |config|
+        config.build_settings['MARKETING_VERSION'] = version
+      end
+    end
+  end
+  project.save()
+end
+
+lane :beta do |options|
+  platform = UI.select("Which platform: ", ["iOS", "Android", "Both"])
+
+  UI.success("Uploading beta for '#{platform}' platform")
+
+  current_version = get_current_marketing_version()
+
+  if UI.confirm("Change version name? Current: '#{current_version}")
+    new_version = UI.input("Enter version name")
+  end
+
+  set_marketing_version(new_version || current_version)
+
+  set_value_in_build(
+    key: 'versionName',
+    value: new_version || current_version
+  )
+
+  version_code = sh('git rev-list --count HEAD').strip
+  increment_build_number(
+    build_number: version_code, # git commit count
+    xcodeproj: './ios/tegsoft_touch.xcodeproj'
+  )
+
+  set_value_in_build(
+    key: 'versionCode',
+    value: version_code
+  )
+
+  Fastlane::LaneManager.cruise_lane("ios", "beta") unless platform == "Android"
+  Fastlane::LaneManager.cruise_lane("android", "beta") unless platform == "iOS"
+
+  commit_version_bump(
+    message: "Version Bump",
+    xcodeproj: './ios/tegsoft_touch.xcodeproj',
+    include: ['android/app/build.gradle', './fastlane/metadata/beta_notes.txt']
+  )
+
+  if defined? new_version
+    add_git_tag(
+      tag: new_version
+    )
+    push_git_tags
+  end
+end
+
+platform :ios do
+  desc "Push a new beta build to Firebase"
+  lane :beta do
+    update_project_team(
+      path: "./ios/tegsoft_touch.xcodeproj"
+    )
+
+    register_devices(devices_file: "./fastlane/metadata/devices.txt")
+    match(type: "adhoc", force_for_new_devices: true)
+
+    gym(
+        # archive_path: "/Users/mehtap/Library/Developer/Xcode/Archives/2020-03-21/tegsoft_touch 2020-03-21 19.52.07.xcarchive",
+        # skip_build_archive: true,
+        export_method: "ad-hoc",
+        configuration: "Staging",
+        include_bitcode: false,
+        export_options: {
+          uploadBitcode: false,
+          uploadSymbols: true,
+          compileBitcode: false
+        }
+    )
+    
+    release_notes = File.read('./metadata/beta_notes.txt')
+    
+    firebase_app_distribution(
+      app: '1:217668929498:ios:47db2048dde26cecfe22e3',
+      groups: "Internal",
+      release_notes: release_notes,
+      firebase_cli_path: "/usr/local/bin/firebase"
+    )
+    
+    # upload_symbols_to_crashlytics(gsp_path: "./ios/GoogleService-Info-Beta.plist")
+  end
+end
+
+platform :android do 
+  desc "Submit a new Beta Build to Firebase App Distribution"
+  lane :beta do
+    gradle(task: 'clean', project_dir: 'android/')
+    gradle(
+      task: "assemble",
+      build_type: "staging",
+      project_dir: "android/"
+    )
+
+    begin
+      retries ||= 0
+      UI.important "firebase_app_distribution try ##{ retries }"
+      publish_beta
+    rescue => e
+      raise e if (retries += 1) >= 5
+      retry
+    end
+
+    # gradle(
+    #   task: "crashlyticsUploadSymbols",
+    #   build_type: "staging",
+    #   project_dir: "android/"
+    # )
+  end
+
+  desc "Submit latest Beta Build to Firebase App Distribution"
+  lane :publish_beta do
+    release_notes = File.read('./metadata/beta_notes.txt')
+
+    firebase_app_distribution(
+      apk_path: './android/app/build/outputs/apk/staging/app-staging.apk',
+      app: '1:217668929498:android:624609087433b66cfe22e3',
+      groups: "Internal",
+      release_notes: release_notes,
+      firebase_cli_path: "/usr/local/bin/firebase"
+    )
+  end
+end

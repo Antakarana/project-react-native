@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:opacity="opaque">
+    <item>
+        <aapt:attr name="android:drawable">
+            <shape android:shape="rectangle">
+
+                <gradient
+                    android:angle="270"
+                    android:endColor="#FFCD03"
+                    android:startColor="#F7921E" />
+            </shape>
+        </aapt:attr>
+    </item>
+
+    <item
+        android:bottom="200dp"
+        android:drawable="@drawable/touch_logo_white"
+        android:gravity="center" />
+
+    <item
+        android:bottom="105dp"
+        android:drawable="@drawable/from"
+        android:gravity="center_horizontal|bottom" />
+
+    <item
+        android:bottom="60dp"
+        android:drawable="@drawable/tegsoft_logo_white"
+        android:gravity="center_horizontal|bottom" />
+
+</layer-list>

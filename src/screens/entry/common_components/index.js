@@ -1,0 +1,1 @@
+export { TxtInput } from './TxtInput';
