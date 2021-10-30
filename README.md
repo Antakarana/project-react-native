@@ -1,2 +1,2 @@
 # Project
-React Native Project
+React Native
